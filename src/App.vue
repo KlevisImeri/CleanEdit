@@ -12,7 +12,7 @@
       
       <div class="text-gray-200">
         <p v-if="selectedVideo">Selected Video: {{ selectedVideo.name }}</p>
-        <p v-if="fps && selectedProject">{{ fps }}</p>
+        <p v-if="fps && selectedProject">FPS: {{ fps }}</p>
         <p v-if="selectedProject">Selected Project: {{ selectedProject.name }}</p>
         <p v-if="selectedVideo && selectedProject && selectedVideo.name != projectVideoName" class="text-red-400">
           Project video [{{ projectVideoName }}] doesn't match with video [{{ selectedVideo.name }}]

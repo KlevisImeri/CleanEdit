@@ -11,7 +11,7 @@ import type {
   Segment,
   Track
 } from "@/types";
-import { time } from "console";
+
 
 export const openVideo = () => {
   const input = document.createElement('input');
@@ -32,7 +32,7 @@ export const openVideo = () => {
 export const openProject = () => {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.xml';
+  input.accept = '.fcpxml';
   input.onchange = async (event) => {
     const files = (event.target as HTMLInputElement).files;
     if (files && files.length > 0) {
@@ -57,12 +57,20 @@ const parseFCPXML = (xmlString: string): Promise<Track> => {
     const formatElement = xmlDoc.querySelector('format');
     if (formatElement) {
       const frameDurationAttr = formatElement.getAttribute('frameDuration') || '1/60s';
-      const duration = formatElement.getAttribute('duration') || '18000/60s';
       fps.value = parseFPS(frameDurationAttr);
-      totalDuration.value = parseFrames(duration);
+      console.log('Frames Per Second:', fps.value);
+    } else {
+      throw Error('Format element not found in project xml!');
     }
-    console.log('Frames Per Second:', fps);
-    console.log('Total number of frames:', totalDuration);
+    
+    const assetElem = xmlDoc.querySelector('asset');
+    if(assetElem){
+      const duration = assetElem.getAttribute('duration') || '18000/60s';
+      totalDuration.value = parseFrames(duration);
+      console.log('Total number of frames:', totalDuration.value);
+    } else {
+      throw Error('No assets path found in the fcpxml file.');
+    }
 
     // Extract the video file name
     const pathurlElement = xmlDoc.querySelector('media-rep');
@@ -71,7 +79,7 @@ const parseFCPXML = (xmlString: string): Promise<Track> => {
       projectVideoName.value = projectVideoPath.split(/[/\\]/).pop();
       console.log('Project Video Name:', projectVideoName.value);
     } else {
-      console.log('No video path found in the fcpxml file.');
+      throw Error('No video path found in the fcpxml file.');
     }
 
     // Extract asset clips
@@ -101,16 +109,23 @@ const parseFCPXML = (xmlString: string): Promise<Track> => {
       segments.push({start, end, removed })
     }
 
+    console.log(segments);
+
     resolve({ segments });
   });
 };
 
 const parseFPS = (frameDuration: string): number => {
-  const [,fps] = frameDuration.split('/').map(Number);
-  return fps; 
+  const parts = frameDuration.trim().split('/');
+  if (parts.length === 2) {
+    const fps = Number(parts[1].replace('s', '').trim());
+    return fps;
+  }
+  throw new Error('Invalid frameDuration format');
 };
 
 const parseFrames = (duration: string): number => {
+  if('0s'=== duration) return 0;
   const [frames] = duration.split('/').map(Number);
   return frames; 
 };
@@ -126,14 +141,15 @@ export const exportCutPoints = () => {
   const segments = tracks.value[0].segments;
   const ffmpegSegments = [];
 
+  //FFmpeg concat demuxe
   for (const segment of segments) {
     if (!segment.removed) {
-      const start = segment.start.toFixed(2);
-      const end = segment.end.toFixed(2);
+      const start = (segment.start / fps.value).toFixed(2);
+      const end = (segment.end / fps.value).toFixed(2);
       ffmpegSegments.push(
         `file '${selectedVideo.value.name}'\n` +
         `inpoint ${start}\n` +
-        `outpoint ${end}`
+        `outpoint ${end}\n`
       );
     }
   }

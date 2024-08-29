@@ -9,11 +9,16 @@ import {
   totalDuration,
   UNITSEC,
   zoomLevel,
-  fps
+  fps,
+  UNITTICK,
+  ZOOMMIX,
+  ZOOMMAX,
+  UNITMARKER,
+  ZOOMSPEED
 } from '@/variables';
 
-import type { 
-  Track, 
+import type {
+  Segment,
 } from '@/types';
 
 
@@ -22,18 +27,51 @@ const timelineRef = ref<HTMLElement | null>(null);
 const fpsToPx = computed(() => 1/fps.value * UNITSEC * zoomLevel.value);
 const secToPos = computed(() => 60 * fpsToPx.value); 
 const timelineWidth = computed(() => totalDuration.value * fpsToPx.value);
+
+const visibleRangeFPS = computed(() => {
+  const timeline = timelineRef.value;
+  if (!timeline) return { start: 0, end: 0 };
+  const left = scrollPosition.value;
+  const right = left + timeline.clientWidth;
+  const start = left / fpsToPx.value;
+  const end = right / fpsToPx.value;
+  return { start, end };
+});
+
+const visibleRangeTIME = computed(() => {
+  const timeline = timelineRef.value;
+  if (!timeline) return { start: 0, end: 0 };
+  const left = scrollPosition.value;
+  const right = left + timeline.clientWidth;
+  const start = left / secToPos.value;
+  const end = right / secToPos.value;
+  return { start, end };
+});
+
+
+const visibleSegments = computed(() => {
+  const { start, end } = visibleRangeFPS.value; // Ensure visibleRange is a reactive reference or computed property
+  return tracks.value.flatMap(track =>
+    track.segments.filter(segment => segment.end >= start && segment.start <= end)
+  );
+});
+
+
+
 const timeMarkers = computed(() => {
   const markers: number[] = [];
-  const step = 10 / zoomLevel.value;
-  for (let i = 0; i <= totalDuration.value / fps.value; i += step) {
+  const { start, end } = visibleRangeTIME.value; 
+  const step = UNITMARKER / zoomLevel.value;
+  for (let i = start ; i <= end; i += step) {
     markers.push(i);
   }
   return markers;
 });
 const tickMarks = computed(() => {
   const ticks: number[] = [];
-  const tickInterval = 1 / zoomLevel.value; // Tick marks every second
-  for (let i = 0; i <= totalDuration.value/fps.value; i += tickInterval) {
+  const { start, end } = visibleRangeTIME.value; 
+  const tickInterval = UNITTICK / zoomLevel.value; // Tick marks every second
+  for (let i = start; i <= end; i += tickInterval) {
     ticks.push(i);
   }
   return ticks;
@@ -53,7 +91,7 @@ const zoom = (factor: number, mouseX: number) => {
   const mousePositionRatio = (mouseX - rect.left + timeline.scrollLeft) / timelineWidth.value;
 
   zoomLevel.value *= factor;
-  zoomLevel.value = Math.max(0.1, Math.min(zoomLevel.value, 10)); 
+  zoomLevel.value = Math.max(ZOOMMIX, Math.min(zoomLevel.value, ZOOMMAX)); 
 
   timeline.scrollLeft = mousePositionRatio * timelineWidth.value - mouseX + rect.left;
 };
@@ -61,7 +99,7 @@ const zoom = (factor: number, mouseX: number) => {
 const handleWheel = (event: WheelEvent) => {
   if (event.ctrlKey) {
     event.preventDefault();
-    const factor = event.deltaY > 0 ? 0.9 : 1.1;
+    const factor = event.deltaY > 0 ? 1-ZOOMSPEED : 1+ZOOMSPEED;
     zoom(factor, event.clientX);
   } else {
     const timeline = timelineRef.value;
@@ -75,12 +113,16 @@ const handleScroll = (event: Event) => {
   scrollPosition.value = target.scrollLeft;
 };
 
-const segmentStyle = (right : number, left: number): { left: string; right: string; } => {
+const segmentStyle = (segment: Segment): { left: string; width: string; } => {
+  const left = segment.start * fpsToPx.value;
+  const width = (segment.end - segment.start) * fpsToPx.value;
   return {
-    left: `${left * fpsToPx.value}px`,
-    right: `${right * fpsToPx.value}px`,
+    left: `${left}px`,
+    width: `${width}px`,
   };
 };
+
+
 </script>
 
 <template>
@@ -112,16 +154,15 @@ const segmentStyle = (right : number, left: number): { left: string; right: stri
 
         <!-- Segments -->
         <div class="mt-2 mb-2">
-          <div v-for="(track, index) in tracks" :key="index" class="relative h-10 mt-1 mb-1">
-            <div v-for="(cut, index) in track.cuts" :key="cut">
-              <div 
-                  class="absolute h-full rounded px-1 py-0.5 text-xs whitespace-nowrap overflow-hidden overflow-ellipsis border border-gray-400 "
-                  :class="track.isCut[index] ? `bg-gray-500` : `bg-red-400`"
-                  :style="segmentStyle(cut, track.cuts[index+1])">
-              </div>
+          <div v-for="(track, index) in tracks" :key="index" class="relative h-20 mt-1 mb-1">
+            <div v-for="(segment, index) in visibleSegments" :key="index"
+                class="absolute h-full rounded px-1 py-0.5 text-xs whitespace-nowrap overflow-hidden overflow-ellipsis border border-gray-800"
+                :class="segment.removed ? `bg-red-400` : 'bg-gray-400'"
+                :style="segmentStyle(segment)">
             </div>
           </div>
         </div>
+
 
         
       </div>
