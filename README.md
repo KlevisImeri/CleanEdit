@@ -1,6 +1,6 @@
 # CleanEdit
 
-<div style="text-align: center;">
+<div style="display: flex; justify-content: center;">
     <img src="src/assets/black_border.png" alt="logo" width="200px">
 </div>
 
