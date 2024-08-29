@@ -1,7 +1,10 @@
-# CleanEdit
 
-<div style="display: flex; justify-content: center;">
+<div style="display: flex; justify-content: center; align-items: center;">
     <img src="src/assets/black_border.png" alt="logo" width="200px">
+    <div style="display: flex; flex-direction: column; margin-left: 20px;">
+        <h1 style="margin: 0;">CLEAN EDIT</h1>
+        <h3 style="margin: 0;">EDIT FAST WITH THE FASTEST TIMELINE</h3>
+    </div>
 </div>
 
 
