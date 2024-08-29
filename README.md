@@ -1,4 +1,4 @@
-# videocutter
+# CleanEdit
 
 <div style="text-align: center;">
     <img src="src/assets/black_border.png" alt="logo">
