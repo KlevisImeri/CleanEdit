@@ -181,16 +181,15 @@ const formatTime = (time: number): string => {
 };
 
 const zoom = (factor: number, mouseX: number) => {
-	const timeline = timelineRef.value;
-	if (!timeline) return;
+  const timeline = timelineRef.value;
+  if (!timeline) return;
 
-	const rect = timeline.getBoundingClientRect();
-  timeline.scrollLeft += mouseX;
+  const originalPosFps = (timeline.scrollLeft+mouseX)/fpsToPx.value;
 
-	zoomLevel.value *= factor;
-	zoomLevel.value = Math.max(ZOOMMIX, Math.min(zoomLevel.value, ZOOMMAX));
+  zoomLevel.value *= factor;
+  zoomLevel.value = Math.max(ZOOMMIX, Math.min(zoomLevel.value, ZOOMMAX));
 
-	timeline.scrollLeft -= mouseX;
+  timeline.scrollLeft = originalPosFps*fpsToPx.value - mouseX;
 };
 
 const handleWheel = (event: WheelEvent) => {

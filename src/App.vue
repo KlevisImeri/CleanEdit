@@ -47,7 +47,6 @@
 <script setup lang="ts">
 import Timeline from '@/components/Timeline.vue'
 import Video from '@/components/Video.vue'
-import VidoeCanvas from '@/components/VideoCanvas.vue'
 
 import {
 	selectedVideo,
