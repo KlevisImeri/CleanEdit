@@ -1,5 +1,5 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
-
 	<div v-if="selectedVideo" class="w-full bg-gray-800 text-white font-sans">
 		<div class="flex items-center p-2 ">
 			<span class="ml-auto">{{ formatTime(Math.round(currentFrame / fps)) }} / {{ formatTime(totalDuration / fps)
@@ -83,7 +83,6 @@ import {
 	ZOOMMAX,
 	UNITMARKER,
 	ZOOMSPEED,
-	selectedProject,
 	video,
 	curSeg,
 	till,
@@ -118,7 +117,7 @@ function isSegmentSelected(segIndex : number): boolean {
   }
 
   return false
-};
+}
 
 const visibleRangeFPS = computed(() => {
 	const timeline = timelineRef.value;
@@ -247,7 +246,7 @@ const handleClick = (event: MouseEvent) => {
 	const newTime = clickPositionX / secToPos.value; 
   const newFrame = clickPositionX / fpsToPx.value;
   const selectedSegment = binarySearch(tracks.value[0], newFrame);
-  console.log(selectedSegment);
+  // console.log(selectedSegment);
 
   if (event.shiftKey) {
     if(sel1.value === selectedSegment){
@@ -259,7 +258,7 @@ const handleClick = (event: MouseEvent) => {
     } else if(sel2.value===-1){
       sel2.value = selectedSegment;
     } 
-    console.log(`sel1: ${sel1.value}, sel2: ${sel2.value}`);
+    // console.log(`sel1: ${sel1.value}, sel2: ${sel2.value}`);
   } else {
     if (video.value) {
       video.value.currentTime = newTime;

@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
 	<video ref="video" id="video" v-if="videoUrl" :src="videoUrl" controls class="mt-4 w-full" width="1280"
 		height="720"></video>
@@ -6,10 +7,8 @@
 
 <script setup lang="ts">
 import {
-  computed,
 	onMounted,
 	onUnmounted,
-  vModelCheckbox,
 } from 'vue'
 
 import {
@@ -21,9 +20,7 @@ import {
 	curSeg,
 	till,
 	totalDuration,
-  fpsToPx,
   secToFps,
-  resetVariables,
   sel1,
   sel2,
 } from '@/variables'
@@ -32,7 +29,6 @@ import {
   inflateSegments 
 } from '@/fileUtil'; 
 
-import type { Segment } from '@/types'
 
 const onTimeUpdate = () => {
 	if (!video.value) throw Error("Can't update timeline because no video element is available!");
@@ -40,7 +36,7 @@ const onTimeUpdate = () => {
   if (segments.length===0) {
     requestAnimationFrame(onTimeUpdate);
     return;
-  };
+  }
   // Just a check not really needed though (dont make it equal cause then video does the reload thing)
   if (video.value.currentTime > video.value.duration) {
     video.value.currentTime = video.value.duration;

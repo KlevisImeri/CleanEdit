@@ -9,7 +9,7 @@
           Open Project
         </button>
         <div class="flex justify-center">
-          <button @click="exportCutPoints" class="button">
+          <button @click="exportProject" class="button">
             Export Cut Points
           </button>
         </div>
@@ -52,9 +52,7 @@ import {
 	selectedVideo,
 	selectedProject,
 	projectVideoName,
-	cutPoints,
 	fps,
-	currentFrame,
 	videoUrl,
   showShortcuts,
   showInformation,
@@ -64,13 +62,13 @@ import {
 import {
 	openVideo,
 	openProject,
-	exportCutPoints
+	exportProject,
+  saveProject,
 } from '@/fileUtil'
 
 import {
 	onMounted,
 	onUnmounted,
-	nextTick,
 } from 'vue'
 
 
@@ -85,7 +83,10 @@ const onKeyDown = (event: KeyboardEvent) => {
 		}
 	} else if (event.ctrlKey && event.key === 's'){
     event.preventDefault();
-    exportCutPoints();
+    saveProject();
+  } else if (event.ctrlKey && event.key === 'E'){
+    event.preventDefault();
+    exportProject();
   } else if (event.key === 'S') {
     showShortcuts.value = !showShortcuts.value; 
   } else if (event.key === 'I') {

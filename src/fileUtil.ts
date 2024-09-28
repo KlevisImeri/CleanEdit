@@ -7,8 +7,6 @@ import {
 	fps,
 	totalDuration,
 	MINCUTWIDTH,
-  curSeg,
-  till,
   resetVariables,
   secToFps,
 } from "@/variables";
@@ -43,7 +41,7 @@ export const openVideo = () => {
 export const openProject = () => {
 	const input = document.createElement('input');
 	input.type = 'file';
-	input.accept = '.fcpxml, .txt'; 
+	input.accept = '.fcpxml, .ce'; 
 	input.onchange = async (event) => {
 		const files = (event.target as HTMLInputElement).files;
 		if (files && files.length > 0) {
@@ -54,12 +52,12 @@ export const openProject = () => {
 
       resetVariables();
 			if (file.name.endsWith('.fcpxml')) {
-				const parsedTrack = await parseFCPXML(content);
-				tracks.value[0]=parsedTrack;  //in the future may be push
-			} else if (file.name.endsWith('.txt')) {
-				const parsedTrack = parseTextFile(content);
-				tracks.value[0]=parsedTrack;
-			}
+				tracks.value[0]=await parseFCPXML(content);  
+			} else if (file.name.endsWith('.txt')){
+				tracks.value[0]=parseTextFile(content);
+			} else if (file.name.endsWith('.ce')){
+        tracks.value[0] = parseProjectFile(content);
+      }
       //console.log(tracks.value[0])
 		}
 	};
@@ -94,7 +92,7 @@ export const inflateSegments = (goodSegments: Segment[]) => {
     } else {
       end = goodSegments[i + 1].start - 1;
     }
-    if (i!=goodSegments.length-1 && start >= end || (Math.abs(start - end) <= MINCUTWIDTH)) { //skip segment
+    if (i<goodSegments.length-1 && start >= end || (Math.abs(start - end) <= MINCUTWIDTH)) { //skip segment
       goodSegments[i + 1].start = goodSegments[i].start;
       continue;
     }
@@ -104,14 +102,26 @@ export const inflateSegments = (goodSegments: Segment[]) => {
     segments.push({id:segments.length, start, end, removed })
   }
 
-  // console.log(segments);
+  console.log(segments);
 
   return segments;
 }
+const parseProjectFile = (jsonString: string) => {
+  try {
+    const parsedData = JSON.parse(jsonString); 
+    console.log('Parsed .ce project:', parsedData);
+    
+    return parsedData;  
+  } catch (error) {
+    console.error("Failed to parse .ce file. Please check the format.", error);
+    return null;
+  }
+};
+
 
 const parseTextFile = (text: string): Track => {
 	const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-	let segments: Segment[] = [];
+	const segments: Segment[] = [];
   // console.log(lines);
 	for (let i = 0; i < lines.length-3; i += 3) {
 		const fileLine = lines[i];
@@ -128,10 +138,11 @@ const parseTextFile = (text: string): Track => {
 
     //TODO: add more information for parsing in the future
 		if (fileMatch && inpointMatch && outpointMatch) {
-      const currentFile = fileMatch[1];
+      // const currentFile = fileMatch[1]; 
+      console.log(secToFps(parseFloat(inpointMatch[1])));
       segments.push({ 
         id: segments.length,
-        start: secToFps(parseFloat(inpointMatch[1])), 
+        start: secToFps(parseFloat(inpointMatch[1])),
         end: secToFps(parseFloat(outpointMatch[1])), 
         removed: false,
       });
@@ -139,8 +150,8 @@ const parseTextFile = (text: string): Track => {
 			throw new Error("Invalid format");
 		}
 	}
-  // console.log(segments);
-  segments = inflateSegments(segments);
+  console.log(segments);
+  // segments = inflateSegments(segments);
 	return { segments };
 };
 
@@ -211,9 +222,19 @@ const parseFrames = (duration: string): number => {
 	return frames;
 };
 
+export const saveProject = () => {
+  if(selectedVideo.value){
+    const data = JSON.stringify(tracks.value[0]);
+    exportFile(data, `${selectedVideo.value.name}.ce`);
+  }
+}
+
+export const exportProject = () => {
+  exportCutPoints();
+}
 
 // Export the cut points to a format that FFmpeg can use
-export const exportCutPoints = () => {
+const exportCutPoints = () => {
 	if (!selectedVideo.value || !tracks.value[0].segments.length) {
 		console.error("No video or segments to export.");
 		return;
@@ -224,27 +245,32 @@ export const exportCutPoints = () => {
 
 	//FFmpeg concat demuxe
 	for (const segment of segments) {
-		if (!segment.removed) {
-			const start = (segment.start / fps.value).toFixed(2);
-			const end = (segment.end / fps.value).toFixed(2);
-			ffmpegSegments.push(
-				`file '${selectedVideo.value.name}'\n` +
-				`inpoint ${start}\n` +
-				`outpoint ${end}\n`
-			);
-		}
+    if (segment.removed) continue;
+		
+    const start = (segment.start / fps.value).toFixed(2);
+    const end = (segment.end / fps.value).toFixed(2);
+    ffmpegSegments.push(
+      `file '${selectedVideo.value.name}'\n` +
+      `inpoint ${start}\n` +
+      `outpoint ${end}\n`
+    );
 	}
 
 	// Create the content of the FFmpeg input file
 	const content = ffmpegSegments.join('\n');
 
-	// Create a blob and trigger a download
-	const blob = new Blob([content], { type: 'text/plain' });
-	const url = URL.createObjectURL(blob);
-	const link = document.createElement('a');
-	link.href = url;
-	link.download = 'cut_segments.txt';
-	document.body.appendChild(link);  // Append to the body
-	link.click();
-	document.body.removeChild(link);  // Clean up after click
+  exportFile(content, 'cut_segments.txt', 'text/plain');
 };
+
+
+const exportFile = (data: string, filename = 'project.json', type = 'application/json') => {
+  const blob = new Blob([data], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);  // Clean up after click
+};
+
