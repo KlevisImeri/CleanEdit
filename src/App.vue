@@ -22,11 +22,13 @@
     <div v-if="showShortcuts" class="ontopdiv">
       <h1 class="text-center font-bold text-l text-gray-300">Shortcuts</h1>
       <p>Ctrl+s -> save cut points</p>
-      <p>E -> remove segment</p>
+      <p>E -> remove segment/segments</p>
       <p>Space -> pause/unpause</p>
       <p>Ctrl-click -> click to the position</p>
+      <p>Shift-click -> select segment</p>
       <p>Ctrl-mousescroll -> zoom in Timeline</p>
       <p>mousescroll -> scroll the Timline</p>
+      <p>ESC -> To remove any selection</p>
     </div>
 
     <div v-if="showInformation" class="ontopdiv">

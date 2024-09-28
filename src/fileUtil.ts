@@ -70,11 +70,17 @@ export const inflateSegments = (goodSegments: Segment[]) => {
   const segments: Segment[] = [];
   if (!goodSegments.length) {
     // throw Error("There are no segments!");
-    segments.push({ start: 0, end: totalDuration.value, removed: false });
+    segments.push({ 
+      id: segments.length,
+      start: 0, 
+      end: totalDuration.value, 
+      removed: false 
+    });
     return segments;
   }
   if (goodSegments[0].start != 0) {
     segments.push({
+      id: segments.length,
       start: 0,
       end: goodSegments[0].start,
       removed: true
@@ -92,12 +98,13 @@ export const inflateSegments = (goodSegments: Segment[]) => {
       goodSegments[i + 1].start = goodSegments[i].start;
       continue;
     }
+    goodSegments[i].id=segments.length;
     segments.push(goodSegments[i]);
     const removed = true;
-    segments.push({ start, end, removed })
+    segments.push({id:segments.length, start, end, removed })
   }
 
-  console.log(segments);
+  // console.log(segments);
 
   return segments;
 }
@@ -115,14 +122,15 @@ const parseTextFile = (text: string): Track => {
 		const inpointMatch = inpointLine.match(/inpoint (\d+(\.\d+)?)/);
 		const outpointMatch = outpointLine.match(/outpoint (\d+(\.\d+)?)/);
     
-    console.log("File Match:", fileMatch);
-    console.log("Inpoint Match:", inpointMatch);
-    console.log("Outpoint Match:", outpointMatch);
+    // console.log("File Match:", fileMatch);
+    // console.log("Inpoint Match:", inpointMatch);
+    // console.log("Outpoint Match:", outpointMatch);
 
     //TODO: add more information for parsing in the future
 		if (fileMatch && inpointMatch && outpointMatch) {
       const currentFile = fileMatch[1];
       segments.push({ 
+        id: segments.length,
         start: secToFps(parseFloat(inpointMatch[1])), 
         end: secToFps(parseFloat(outpointMatch[1])), 
         removed: false,
@@ -131,7 +139,7 @@ const parseTextFile = (text: string): Track => {
 			throw new Error("Invalid format");
 		}
 	}
-  console.log(segments);
+  // console.log(segments);
   segments = inflateSegments(segments);
 	return { segments };
 };
@@ -180,7 +188,7 @@ const parseFCPXML = (xmlString: string): Promise<Track> => {
 			const duration = parseFrames(clip.getAttribute('duration') || '0s');
 			const end = start + duration;
 			const removed = false;
-			segments.push({ start, end, removed });
+			segments.push({id: segments.length, start, end, removed });
 		});
 
     segments = inflateSegments(segments);

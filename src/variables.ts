@@ -24,6 +24,8 @@ export const till = ref<number>(0);
 export const curSeg = ref<number>(0);
 export const showShortcuts = ref(false);
 export const showInformation = ref(false);
+export const sel1 = ref(-1);
+export const sel2 = ref(-1);
 
 export const UNITSEC = 100; //bigger this is the more easy it is to render closely
 export const UNITMARKER = 1;

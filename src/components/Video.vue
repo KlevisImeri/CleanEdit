@@ -24,6 +24,8 @@ import {
   fpsToPx,
   secToFps,
   resetVariables,
+  sel1,
+  sel2,
 } from '@/variables'
 
 import { 
@@ -77,7 +79,20 @@ const onTimeUpdate = () => {
 const onKeyDown = (event: KeyboardEvent) => {
   let segments = tracks.value[0].segments;
 	if (event.key === 'e' || event.key === 'E') {
-		segments[curSeg.value].removed = !segments[curSeg.value].removed;
+    if(sel1.value===-1 && sel2.value===-1){
+      segments[curSeg.value].removed = !segments[curSeg.value].removed;
+    } else if (sel1.value!==-1 && sel2.value!==-1) {
+      const start = Math.min(sel1.value, sel2.value);
+      const end = Math.max(sel1.value, sel2.value);
+      const removed = !segments[start].removed;
+      for (let i = start; i <= end; i++) {
+        segments[i].removed = removed;
+      }
+    } else if(sel1.value!==-1){
+      segments[sel1.value].removed = !segments[sel1.value].removed;
+    } else if(sel2.value!==-1){
+      segments[sel2.value].removed = !segments[sel2.value].removed;
+    }
 		// console.log(`Segment ${curSeg.value} removed status:`, segments[curSeg.value].removed);
 	}
 }

@@ -36,9 +36,14 @@
         <!-- Segments -->
         <div class="mt-2 mb-2">
           <div v-for="(track, index) in tracks" :key="index" class="relative h-20 mt-1 mb-1">
-            <div v-for="(segment, index) in visibleSegments" :key="index"
+            <div v-for="segment in visibleSegments" :key="segment.id"
               class="absolute h-full rounded px-1 py-0.5 text-xs whitespace-nowrap overflow-hidden border border-gray-800"
-              :class="segment.removed ? `bg-gray-600` : 'bg-gray-400'" :style="segmentStyle(segment)">
+              :class="{
+                'bg-gray-600': segment.removed,
+                'bg-gray-400': !segment.removed,
+                'border-2 border-red-400': isSegmentSelected(segment.id)
+              }"
+              :style="segmentStyle(segment)">
             </div>
           </div>
         </div>
@@ -62,6 +67,7 @@ import {
 	ref,
 	computed,
 	watch,
+  onMounted,
 } from 'vue';
 
 import {
@@ -82,6 +88,8 @@ import {
 	curSeg,
 	till,
   selectedVideo,
+  sel1,
+  sel2,
 } from '@/variables';
 
 import type {
@@ -93,6 +101,24 @@ import type {
 const scrollPosition = ref<number>(0.0);
 const timelineRef = ref<HTMLElement | null>(null);
 const timelineWidth = computed(() => totalDuration.value * fpsToPx.value);
+
+
+function isSegmentSelected(segIndex : number): boolean {
+  if (segIndex === sel1.value) {
+    return true;
+  }
+  if (segIndex === sel2.value) {
+    return true;
+  }
+  
+  if(sel1.value !==-1 && sel2.value !== -1){
+    const start = Math.min(sel1.value, sel2.value);
+    const end = Math.max(sel1.value, sel2.value);
+    return start<= segIndex && segIndex<= end;
+  }
+
+  return false
+};
 
 const visibleRangeFPS = computed(() => {
 	const timeline = timelineRef.value;
@@ -121,7 +147,6 @@ const visibleSegments = computed(() => {
 		track.segments.filter(segment => segment.end >= start && segment.start <= end)
 	);
 });
-
 
 
 const timeMarkers = computed(() => {
@@ -222,14 +247,29 @@ const handleClick = (event: MouseEvent) => {
 	const clickPositionX = event.clientX - rect.left + timeline.scrollLeft;
 	const newTime = clickPositionX / secToPos.value; 
   const newFrame = clickPositionX / fpsToPx.value;
+  const selectedSegment = binarySearch(tracks.value[0], newFrame);
+  console.log(selectedSegment);
 
-	if (video.value) {
-		video.value.currentTime = newTime;
-    currentFrame.value = newFrame;
-		curSeg.value = binarySearch(tracks.value[0], newFrame)
-		console.log(curSeg.value);
-		till.value = tracks.value[0].segments[curSeg.value].end;
-	}
+  if (event.shiftKey) {
+    if(sel1.value === selectedSegment){
+      sel1.value = -1;
+    } else if (sel2.value === selectedSegment){
+      sel2.value = -1;
+    } else if (sel1.value===-1){
+      sel1.value = selectedSegment;
+    } else if(sel2.value===-1){
+      sel2.value = selectedSegment;
+    } 
+    console.log(`sel1: ${sel1.value}, sel2: ${sel2.value}`);
+  } else {
+    if (video.value) {
+      video.value.currentTime = newTime;
+      currentFrame.value = newFrame;
+      curSeg.value = selectedSegment;
+      till.value = tracks.value[0].segments[curSeg.value].end;
+    }
+  }
+
 };
 
 //TODO: optize this you can save the firt and last frame of the visible timeline
@@ -252,4 +292,14 @@ watch(currentFrame, (newFrame) => {
 	}
 });
 
+const onKeyDown = (event: KeyboardEvent) => {
+  if (event.key === "Escape") { // Check for Ctrl + E
+    sel1.value = -1;
+    sel2.value = -1;
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown);
+});
 </script>
