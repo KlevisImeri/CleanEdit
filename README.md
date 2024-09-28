@@ -28,3 +28,7 @@ bun build
 ```sh
 bun lint
 ```
+
+TO DO
+---
+- Big Timeline with percentage (not every segment)
