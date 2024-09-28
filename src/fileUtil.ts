@@ -7,12 +7,17 @@ import {
 	fps,
 	totalDuration,
 	MINCUTWIDTH,
+  curSeg,
+  till,
+  resetVariables,
+  secToFps,
 } from "@/variables";
 
 import type {
 	Segment,
 	Track
 } from "@/types";
+
 
 
 export const openVideo = () => {
@@ -22,9 +27,11 @@ export const openVideo = () => {
 	input.onchange = (event) => {
 		const files = (event.target as HTMLInputElement).files;
 		if (files && files.length > 0) {
+      //Update variables first 
+      resetVariables();
+      //Put Vidoe on screen and it updats needed variables
 			selectedVideo.value = files[0];
-			videoUrl.value = URL.createObjectURL(selectedVideo.value);
-			// tracks.value = [];
+      videoUrl.value = URL.createObjectURL(files[0]);
 			console.log('Selected file:', selectedVideo.value.name);
 		}
 	};
@@ -36,7 +43,7 @@ export const openVideo = () => {
 export const openProject = () => {
 	const input = document.createElement('input');
 	input.type = 'file';
-	input.accept = '.fcpxml';
+	input.accept = '.fcpxml, .txt'; 
 	input.onchange = async (event) => {
 		const files = (event.target as HTMLInputElement).files;
 		if (files && files.length > 0) {
@@ -44,11 +51,89 @@ export const openProject = () => {
 			selectedProject.value = file;
 			console.log('Selected file:', file.name);
 			const content = await file.text();
-			const parsedTrack = await parseFCPXML(content);
-			tracks.value.push(parsedTrack);
+
+      resetVariables();
+			if (file.name.endsWith('.fcpxml')) {
+				const parsedTrack = await parseFCPXML(content);
+				tracks.value[0]=parsedTrack;  //in the future may be push
+			} else if (file.name.endsWith('.txt')) {
+				const parsedTrack = parseTextFile(content);
+				tracks.value[0]=parsedTrack;
+			}
+      //console.log(tracks.value[0])
 		}
 	};
 	input.click();
+};
+
+export const inflateSegments = (goodSegments: Segment[]) => {
+  const segments: Segment[] = [];
+  if (!goodSegments.length) {
+    // throw Error("There are no segments!");
+    segments.push({ start: 0, end: totalDuration.value, removed: false });
+    return segments;
+  }
+  if (goodSegments[0].start != 0) {
+    segments.push({
+      start: 0,
+      end: goodSegments[0].start,
+      removed: true
+    });
+  }
+  for (let i = 0; i < goodSegments.length; i++) {
+    const start = goodSegments[i].end + 1;
+    let end = 0;
+    if (i == goodSegments.length - 1) {
+      end = totalDuration.value;
+    } else {
+      end = goodSegments[i + 1].start - 1;
+    }
+    if (i!=goodSegments.length-1 && start >= end || (Math.abs(start - end) <= MINCUTWIDTH)) { //skip segment
+      goodSegments[i + 1].start = goodSegments[i].start;
+      continue;
+    }
+    segments.push(goodSegments[i]);
+    const removed = true;
+    segments.push({ start, end, removed })
+  }
+
+  console.log(segments);
+
+  return segments;
+}
+
+const parseTextFile = (text: string): Track => {
+	const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+	let segments: Segment[] = [];
+  // console.log(lines);
+	for (let i = 0; i < lines.length-3; i += 3) {
+		const fileLine = lines[i];
+		const inpointLine = lines[i + 1];
+		const outpointLine = lines[i + 2];
+    
+		const fileMatch = fileLine.match(/file '(.*?)'/);
+		const inpointMatch = inpointLine.match(/inpoint (\d+(\.\d+)?)/);
+		const outpointMatch = outpointLine.match(/outpoint (\d+(\.\d+)?)/);
+    
+    console.log("File Match:", fileMatch);
+    console.log("Inpoint Match:", inpointMatch);
+    console.log("Outpoint Match:", outpointMatch);
+
+    //TODO: add more information for parsing in the future
+		if (fileMatch && inpointMatch && outpointMatch) {
+      const currentFile = fileMatch[1];
+      segments.push({ 
+        start: secToFps(parseFloat(inpointMatch[1])), 
+        end: secToFps(parseFloat(outpointMatch[1])), 
+        removed: false,
+      });
+		} else {
+			throw new Error("Invalid format");
+		}
+	}
+  console.log(segments);
+  segments = inflateSegments(segments);
+	return { segments };
 };
 
 
@@ -89,47 +174,16 @@ const parseFCPXML = (xmlString: string): Promise<Track> => {
 		// Extract asset clips
 		const assetClips = xmlDoc.querySelectorAll('spine > asset-clip');
 
-		const goodSegments: Segment[] = [];
+		let segments: Segment[] = [];
 		assetClips.forEach((clip: Element) => {
 			const start = parseFrames(clip.getAttribute('start') || '0s');
 			const duration = parseFrames(clip.getAttribute('duration') || '0s');
 			const end = start + duration;
 			const removed = false;
-			goodSegments.push({ start, end, removed });
+			segments.push({ start, end, removed });
 		});
 
-		const segments: Segment[] = [];
-		if (!goodSegments.length) {
-			throw Error("There are no segments!");
-			// segments.push({0,totalDuration,flase);
-			// console.log("The array was empty!");
-		}
-		if (goodSegments[0].start != 0) {
-			segments.push({
-				start: 0,
-				end: goodSegments[0].start,
-				removed: true
-			});
-		}
-		for (let i = 0; i < goodSegments.length; i++) {
-			const start = goodSegments[i].end + 1;
-			let end = 0;
-			if (i == goodSegments.length - 1) {
-				end = totalDuration.value;
-			} else {
-				end = goodSegments[i + 1].start - 1;
-			}
-			if (start >= end || (Math.abs(start - end) <= MINCUTWIDTH)) { //skip segment
-				goodSegments[i + 1].start = goodSegments[i].start;
-				continue;
-			}
-			segments.push(goodSegments[i]);
-			const removed = true;
-			segments.push({ start, end, removed })
-		}
-
-		console.log(segments);
-
+    segments = inflateSegments(segments);
 		resolve({ segments });
 	});
 };

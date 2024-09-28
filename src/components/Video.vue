@@ -1,12 +1,15 @@
 <template>
-	<video ref="videoElement" id="video" v-if="videoUrl" :src="videoUrl" controls class="mt-4 w-full" width="1280"
+	<video ref="video" id="video" v-if="videoUrl" :src="videoUrl" controls class="mt-4 w-full" width="1280"
 		height="720"></video>
 	<!-- <canvas id="video-canvas"></canvas> -->
 </template>
 
 <script setup lang="ts">
 import {
+  computed,
 	onMounted,
+	onUnmounted,
+  vModelCheckbox,
 } from 'vue'
 
 import {
@@ -14,54 +17,87 @@ import {
 	currentFrame,
 	tracks,
 	fps,
-	videoElement,
+	video,
 	curSeg,
 	till,
+	totalDuration,
+  fpsToPx,
+  secToFps,
+  resetVariables,
 } from '@/variables'
 
+import { 
+  inflateSegments 
+} from '@/fileUtil'; 
+
 import type { Segment } from '@/types'
-let segments: Segment[];
-
-
 
 const onTimeUpdate = () => {
-	if (!videoElement) throw Error("Can't update timeline because no video element is available!");
-	const frame = Math.round(video.currentTime * fps.value);  // Convert time to frame
-
+	if (!video.value) throw Error("Can't update timeline because no video element is available!");
+  let segments = tracks.value[0].segments;
+  if (segments.length===0) {
+    requestAnimationFrame(onTimeUpdate);
+    return;
+  };
+  // Just a check not really needed though (dont make it equal cause then video does the reload thing)
+  if (video.value.currentTime > video.value.duration) {
+    video.value.currentTime = video.value.duration;
+    video.value.pause();
+    requestAnimationFrame(onTimeUpdate);
+    return;
+  }
 	// console.log("Redering frame!");
-	// console.log(`till: ${till}`);
-	// console.log(`currentFrame: ${currentFrame}`);
-	// console.log(curSeg.value);
 
+  currentFrame.value = secToFps(video.value.currentTime);
+  // console.log(video.value.currentTime)
 
-	//Stop at last frame;
-	if (frame > till.value) {
+	if (currentFrame.value > till.value) {
 		curSeg.value++;
 		while (curSeg.value < segments.length && segments[curSeg.value].removed) curSeg.value++; //You can precompute before hand
-		currentFrame.value = segments[curSeg.value].start;
-		video.currentTime = segments[curSeg.value].start / fps.value; // WARNING: THIS IS SLOW
-		// video.fastSeek(segments[curSeg.value].start / fps.value) //WARNING: Only for keyframes
+    if(curSeg.value == segments.length && segments.length!=0){
+      curSeg.value--;
+      currentFrame.value = segments[curSeg.value].end;
+      video.value.currentTime = segments[curSeg.value].end / fps.value; // WARNING: THIS IS SLOW
+    } else {
+      currentFrame.value = segments[curSeg.value].start;  
+      video.value.currentTime = segments[curSeg.value].start / fps.value; // WARNING: THIS IS SLOW
+      // video.fastSeek(segments[curSeg.value].start / fps.value) //WARNING: Only for keyframes
+    }
 
 		while (curSeg.value < segments.length && !segments[curSeg.value].removed) curSeg.value++;
 		curSeg.value--;
 		till.value = segments[curSeg.value].end;
 	}
-
-	currentFrame.value = frame;
+  // console.log(`till: ${till.value}`)
+	// console.log(`currentFrame: ${currentFrame.value}`);
+	// console.log(`currentSeg: ${curSeg.value}`);
 	requestAnimationFrame(onTimeUpdate);
 }
 
+const onKeyDown = (event: KeyboardEvent) => {
+  let segments = tracks.value[0].segments;
+	if (event.key === 'e' || event.key === 'E') {
+		segments[curSeg.value].removed = !segments[curSeg.value].removed;
+		// console.log(`Segment ${curSeg.value} removed status:`, segments[curSeg.value].removed);
+	}
+}
 
-let video: HTMLVideoElement; //for speed reasons
 
 onMounted(() => {
-	video = document.getElementById('video') as HTMLVideoElement;
-	videoElement.value = video;
-	if (!videoElement) throw Error("No video selected!");
-	segments = tracks.value[0].segments;
-	curSeg.value = 0;
-	console.log("Added EventListener to video!");
-	onTimeUpdate();
+	video.value = document.getElementById('video') as HTMLVideoElement;
+  video.value.addEventListener('loadedmetadata',() => {
+    if (!video.value) throw Error("No video selected!");
+    totalDuration.value = Math.round(video.value.duration * fps.value);
+    console.log('Total number of frames:', totalDuration.value);
+    tracks.value[0].segments = inflateSegments(tracks.value[0].segments);
+  })
+  window.addEventListener("keydown", onKeyDown);
+  console.log("Added EventListener to video!");
+  onTimeUpdate();
+});
+
+onUnmounted(() => {
+	window.removeEventListener("keydown", onKeyDown);
 });
 
 </script>

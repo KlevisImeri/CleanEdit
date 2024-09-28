@@ -1,47 +1,58 @@
 <template>
 
-	<div v-if="selectedProject" class="w-full bg-gray-800 text-white font-sans">
-		<div class="flex items-center p-2">
-			<span class="ml-auto">{{ formatTime(scrollPosition / secToPos) }} / {{ formatTime(totalDuration / fps)
+	<div v-if="selectedVideo" class="w-full bg-gray-800 text-white font-sans">
+		<div class="flex items-center p-2 ">
+			<span class="ml-auto">{{ formatTime(Math.round(currentFrame / fps)) }} / {{ formatTime(totalDuration / fps)
 				}}</span>
 		</div>
+    
+    <div class="p-2 bg-gray-700 rounded-lg">
+      <div 
+      ref="timelineRef" 
+      class="relative h-50 overflow-x-auto"
+      @wheel="handleWheel"
+      @scroll="handleScroll" 
+      @click="handleClick">
+      <div :style="{ width: `${timelineWidth}px` }">
+        
+        <!-- Time Markers -->
+        <div class="relative h-5 ">
+          <span v-for="marker in timeMarkers" :key="marker" 
+            class="absolute text-xs text-gray-300 -translate-x-1/2 overflow-visible"
+            :style="{ left: `${marker * secToPos}px` }">
+            {{ formatTime(marker) }}
+          </span>
+        </div>
+        
+  
+        <!-- Tick Marks -->
+        <div class="relative h-4  border-b  border-gray-600">
+          <div v-for="tick in tickMarks" :key="tick" class="absolute border-l border-gray-500"
+            :style="{ left: `${tick * secToPos}px`, height: '100%' }">
+          </div>
+        </div>
 
-		<div ref="timelineRef" class="relative h-50 overflow-x-auto p-2 bg-gray-700 rounded-lg" @wheel="handleWheel"
-			@scroll="handleScroll" @click="handleClick">
-			<div :style="{ width: `${timelineWidth}px` }">
 
-				<!-- Time Markers -->
-				<div class="relative h-5 ">
-					<span v-for="marker in timeMarkers" :key="marker" class="absolute text-xs text-gray-300"
-						:style="{ left: `${marker * secToPos}px` }">
-						{{ formatTime(marker) }}
-					</span>
-				</div>
+        <!-- Segments -->
+        <div class="mt-2 mb-2">
+          <div v-for="(track, index) in tracks" :key="index" class="relative h-20 mt-1 mb-1">
+            <div v-for="(segment, index) in visibleSegments" :key="index"
+              class="absolute h-full rounded px-1 py-0.5 text-xs whitespace-nowrap overflow-hidden border border-gray-800"
+              :class="segment.removed ? `bg-gray-600` : 'bg-gray-400'" :style="segmentStyle(segment)">
+            </div>
+          </div>
+        </div>
 
+        <!-- Current Time Indicator -->
+        <div 
+          class="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" 
+          :style="{ left: `calc(${currentFrame * fpsToPx}px)` }">
+        </div>
+  
+        </div>
+      </div>    
+    </div>
 
-				<!-- Tick Marks -->
-				<div class="relative h-4  border-b  border-gray-600">
-					<div v-for="tick in tickMarks" :key="tick" class="absolute border-l border-gray-500"
-						:style="{ left: `${tick * secToPos}px`, height: '100%' }">
-					</div>
-				</div>
-
-				<!-- Segments -->
-				<div class="mt-2 mb-2">
-					<div v-for="(track, index) in tracks" :key="index" class="relative h-20 mt-1 mb-1">
-						<div v-for="(segment, index) in visibleSegments" :key="index"
-							class="absolute h-full rounded px-1 py-0.5 text-xs whitespace-nowrap overflow-hidden overflow-ellipsis border border-gray-800"
-							:class="segment.removed ? `bg-gray-600` : 'bg-gray-400'" :style="segmentStyle(segment)">
-						</div>
-					</div>
-				</div>
-
-				<!-- Current Time Indicator -->
-				<div class="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" :style="{ left: `${currentFrame * fpsToPx}px` }">
-				</div>
-
-			</div>
-		</div>
 	</div>
 </template>
 
@@ -67,9 +78,10 @@ import {
 	UNITMARKER,
 	ZOOMSPEED,
 	selectedProject,
-	videoElement,
+	video,
 	curSeg,
 	till,
+  selectedVideo,
 } from '@/variables';
 
 import type {
@@ -78,7 +90,7 @@ import type {
 } from '@/types';
 
 
-const scrollPosition = ref<number>(0);
+const scrollPosition = ref<number>(0.0);
 const timelineRef = ref<HTMLElement | null>(null);
 const timelineWidth = computed(() => totalDuration.value * fpsToPx.value);
 
@@ -132,9 +144,15 @@ const tickMarks = computed(() => {
 });
 
 const formatTime = (time: number): string => {
-	const minutes = Math.floor(time / 60);
-	const seconds = Math.floor(time % 60);
-	return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const hours = Math.floor(time / 3600);
+  const minutes = Math.floor((time % 3600) / 60);
+  const seconds = Math.floor(time % 60);
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
 };
 
 const zoom = (factor: number, mouseX: number) => {
@@ -142,12 +160,12 @@ const zoom = (factor: number, mouseX: number) => {
 	if (!timeline) return;
 
 	const rect = timeline.getBoundingClientRect();
-	const mousePositionRatio = (mouseX - rect.left + timeline.scrollLeft) / timelineWidth.value;
+  timeline.scrollLeft += mouseX;
 
 	zoomLevel.value *= factor;
 	zoomLevel.value = Math.max(ZOOMMIX, Math.min(zoomLevel.value, ZOOMMAX));
 
-	timeline.scrollLeft = mousePositionRatio * timelineWidth.value - mouseX + rect.left;
+	timeline.scrollLeft -= mouseX;
 };
 
 const handleWheel = (event: WheelEvent) => {
@@ -202,11 +220,12 @@ const handleClick = (event: MouseEvent) => {
 
 	const rect = timeline.getBoundingClientRect();
 	const clickPositionX = event.clientX - rect.left + timeline.scrollLeft;
-	const newTime = clickPositionX / secToPos.value;
-	const newFrame = clickPositionX / fpsToPx.value;
+	const newTime = clickPositionX / secToPos.value; 
+  const newFrame = clickPositionX / fpsToPx.value;
 
-	if (videoElement.value) {
-		videoElement.value.currentTime = newTime;
+	if (video.value) {
+		video.value.currentTime = newTime;
+    currentFrame.value = newFrame;
 		curSeg.value = binarySearch(tracks.value[0], newFrame)
 		console.log(curSeg.value);
 		till.value = tracks.value[0].segments[curSeg.value].end;
@@ -215,6 +234,7 @@ const handleClick = (event: MouseEvent) => {
 
 //TODO: optize this you can save the firt and last frame of the visible timeline
 watch(currentFrame, (newFrame) => {
+	// console.log(`CurrentFrame changed: ${currentFrame.value}`);
 	const timeline = timelineRef.value;
 	if (!timeline) return;
 
