@@ -1,3 +1,6 @@
+
+bun.lockb
+
 # Logs
 logs
 *.log
@@ -28,5 +31,3 @@ coverage
 *.sw?
 
 *.tsbuildinfo
-
-bun.lockb
