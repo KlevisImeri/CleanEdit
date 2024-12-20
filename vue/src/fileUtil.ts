@@ -17,6 +17,39 @@ import type {
 } from "@/types";
 
 
+export const uploadVideo = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'video/*';
+  input.onchange = async (event) => {
+    const files = (event.target as HTMLInputElement).files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      console.log('Selected file:', file.name);
+
+      const formData = new FormData();
+      formData.append('video', file);
+
+      try {
+        const response = await fetch('http://localhost:5000/api/video/uploadvideo', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Video uploaded successfully:', data.path);
+        } else {
+          console.error('Failed to upload video');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+  };
+  input.click();
+};
+
 
 export const openVideo = () => {
 	const input = document.createElement('input');
