@@ -1,0 +1,56 @@
+<template>
+  <div class="flex flex-col items-center justify-center min-h-screen">
+    <h1 class="text-2xl font-bold mb-4 text-zinc-200">Login</h1>
+    <form @submit.prevent="login" class="flex flex-col items-center">
+      <div class="mb-4">
+        <label class="block text-zinc-400">Username</label>
+        <input v-model="formUsername" type="text" class="button" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-zinc-400">Password</label>
+        <input v-model="formPassword" type="password" class="button" required />
+      </div>
+      <button type="submit" class="button">Login</button>
+      <p class="mt-4  text-zinc-400">Don't have an account? <button type="button" class="button" @click="$emit('show-signup')">Signup</button></p>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { 
+  API_PORT,
+  username,
+} from '../variables';
+
+const router = useRouter();
+const formUsername = ref('');
+const formPassword = ref('');
+
+const login = async () => {
+  try {
+    const response = await fetch(`http://localhost:${API_PORT}/api/user/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        username: formUsername.value,
+        password: formPassword.value
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem('token', data.token);
+      username.value = data.username;
+      router.push('/');
+    } else {
+      alert('Login failed');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+</script>

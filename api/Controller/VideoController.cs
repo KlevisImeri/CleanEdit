@@ -42,7 +42,7 @@ public class VideoController : ControllerBase {
     var videoEntity = new Video {
       FileName = video.FileName,
       FilePath = videoPath,
-      UserId = int.Parse(userId) 
+      UserId = int.Parse(userId)
     };
 
     db.Videos.Add(videoEntity);
@@ -51,7 +51,27 @@ public class VideoController : ControllerBase {
     return Ok(new { path = videoPath });
   }
 
+  [HttpGet("videos/{fileName}")]
+  public IActionResult GetVideo(string fileName) {
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (userId == null) {
+      return Unauthorized("User ID not found in token");
+    }
 
+    var video = db.Videos.SingleOrDefault(v => v.FileName == fileName && v.UserId == int.Parse(userId));
+    if (video == null) {
+      return NotFound("Video not found or you do not have access to this video");
+    }
+
+    var videoPath = video.FilePath;
+    if (!System.IO.File.Exists(videoPath)) {
+      return NotFound("Video file not found");
+    }
+
+    var videoStream = new FileStream(videoPath, FileMode.Open, FileAccess.Read);
+    return File(videoStream, "video/mp4");
+  }
+  
   [HttpGet]
   public IActionResult AutoCutVideo([FromQuery] string videoPath, [FromQuery] string exportTo) {
     if (string.IsNullOrEmpty(videoPath)) {

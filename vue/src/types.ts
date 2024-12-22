@@ -8,3 +8,10 @@ export type Segment = {
 export type Track = {
   segments: Segment[],
 };
+
+export type Project = {
+  name: string,
+  video: URL,
+  track: Track,
+}
+

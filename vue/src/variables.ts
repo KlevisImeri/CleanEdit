@@ -6,11 +6,18 @@ import {
 
 import type {
 	Track,
+  Project,
 } from '@/types'
+
+export const API_PORT = 5184;
+export const username = ref("");
+export const projects = ref<Project[]>([]);
+export const selectedProject = ref<Project | null>(null);
+
 
 export const selectedVideo = ref<File | null>(null);
 export const videoUrl = ref<string | null>(null);
-export const selectedProject = ref<File | null>(null);
+// export const selectedProject = ref<File | null>(null);
 export const projectVideoName = ref<string | undefined>();
 export const cutPoints = ref<number[]>([]);
 export const video = ref<HTMLVideoElement | null>(null);

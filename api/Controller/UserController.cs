@@ -17,7 +17,7 @@ public class UserController : ControllerBase {
     config = configuration;
   }
 
-  [HttpPost("register")]
+  [HttpPost("signup")]
   public async Task<IActionResult> Register([FromForm] string username, [FromForm] string password, [FromForm] string email) {
     if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email)) {
       return BadRequest("All fields are required");
@@ -46,6 +46,21 @@ public class UserController : ControllerBase {
 
     var token = GenerateJwtToken(user);
     return Ok(new { token });
+  }
+
+  [HttpPost("validate-token")]
+  public IActionResult ValidateToken() {
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (userId == null) {
+      return Unauthorized("Invalid token");
+    }
+
+    var user = db.Users.SingleOrDefault(u => u.Id == int.Parse(userId));
+    if (user == null) {
+      return NotFound("User not found");
+    }
+
+    return Ok(new { username = user.Username });
   }
 
   private string HashPassword(string password) {
