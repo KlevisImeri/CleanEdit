@@ -62,7 +62,7 @@ namespace api.Migrations
 
                     b.HasIndex("TrackId");
 
-                    b.ToTable("Segment");
+                    b.ToTable("Segments");
                 });
 
             modelBuilder.Entity("Track", b =>
@@ -78,7 +78,7 @@ namespace api.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("Track");
+                    b.ToTable("Tracks");
                 });
 
             modelBuilder.Entity("User", b =>

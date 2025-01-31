@@ -9,14 +9,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250129201649_MakeVideoIdNullable")]
-    partial class MakeVideoIdNullable
+    [Migration("20250131223038_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.1");
 
             modelBuilder.Entity("Project", b =>
                 {
@@ -79,8 +79,7 @@ namespace api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId")
-                        .IsUnique();
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("Track");
                 });
@@ -112,6 +111,9 @@ namespace api.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DurationFPS")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("FileName")
@@ -161,8 +163,8 @@ namespace api.Migrations
             modelBuilder.Entity("Track", b =>
                 {
                     b.HasOne("Project", "Project")
-                        .WithOne("Track")
-                        .HasForeignKey("Track", "ProjectId")
+                        .WithMany("Tracks")
+                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -171,8 +173,7 @@ namespace api.Migrations
 
             modelBuilder.Entity("Project", b =>
                 {
-                    b.Navigation("Track")
-                        .IsRequired();
+                    b.Navigation("Tracks");
                 });
 
             modelBuilder.Entity("Track", b =>

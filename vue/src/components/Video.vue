@@ -1,7 +1,7 @@
 <template>
   <video 
-    ref="video"
-    v-if="videoBlobUrl" 
+    id = "video"
+    v-if="videoBlobUrl"
     :src="videoBlobUrl"
     crossorigin="use-credentials" 
     class="mt-4 w-full"
@@ -128,13 +128,15 @@ const fetchVideo = async () => {
   }
 };
 
-onMounted(() => {
-  fetchVideo();
-  //video.value = document.getElementById('video') as HTMLVideoElement;
-  console.log("video.value:", video.value);
-  window.addEventListener("keydown", onKeyDown);
-  console.log("Added EventListener to video!");
-  onTimeUpdate();
+onMounted(async () => {
+  await fetchVideo();
+  video.value = document.getElementById('video') as HTMLVideoElement;
+  if(video.value == null) throw Error("Cound not get video element: ", video.value);
+  video.value?.addEventListener('loadedmetadata', () => {
+    console.log("video.value:", video.value);
+    window.addEventListener("keydown", onKeyDown);
+    requestAnimationFrame(onTimeUpdate);
+  });
 });
 
 onUnmounted(() => {

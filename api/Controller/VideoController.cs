@@ -23,14 +23,18 @@ public class VideoController : ControllerBase {
   }
 
   [HttpPost("uploadvideo")]
-public async Task<IActionResult> UploadVideo(
-    [FromForm] IFormFile video,
-    [FromForm] int durationFPS,
-    [FromForm] int projectId
-){
+  public async Task<IActionResult> UploadVideo(
+      [FromForm] IFormFile video,
+      [FromForm] int durationFPS,
+      [FromForm] int projectId
+  ){
 
     if (video == null || video.Length == 0) {
         return BadRequest("Video file is required");
+    }
+
+    if (durationFPS <= 0) {
+      return BadRequest("Invalid duration");
     }
 
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -51,41 +55,39 @@ public async Task<IActionResult> UploadVideo(
     }
 
     var videoDirectory = Path.Combine(Directory.GetCurrentDirectory(), "videos");
-    if (!Directory.Exists(videoDirectory))
-    {
+    if (!Directory.Exists(videoDirectory)) {
         Directory.CreateDirectory(videoDirectory);
     }
 
     var videoPath = Path.Combine(videoDirectory, video.FileName);
-    using (var stream = new FileStream(videoPath, FileMode.Create))
-    {
-        await video.CopyToAsync(stream);
+    using (var stream = new FileStream(videoPath, FileMode.Create)) {
+      await video.CopyToAsync(stream);
     }
 
-    var video = new Video
-    {
-        FileName = video.FileName,
-        FilePath = videoPath,
-        UserId = int.Parse(userId),
-        DurationFPS = durationFPS,
+    var videoItem = new Video {
+      FileName = video.FileName,
+      FilePath = videoPath,
+      UserId = int.Parse(userId),
+      DurationFPS = durationFPS,
     };
 
-    db.Videos.Add(videoEntity);
+    var track = new Track() {
+      ProjectId = projectId,
+    };
     
     var segment = new Segment() {
       Start = 0,
       End = durationFPS,
       Removed = false,
+      TrackId = track.Id,
     };
-    db.Segments.Add(segment);
     
-    var track = new Track();
+    db.Videos.Add(videoItem);
     db.Tracks.Add(track);
-    await db.SaveChangesAsync();
-
-    project.Video = video;
     track.Segments.Add(segment);
-    project.Tracks.Add(track);
+
+    project.Video = videoItem;
+
     await db.SaveChangesAsync();
 
     return Ok(new { project });

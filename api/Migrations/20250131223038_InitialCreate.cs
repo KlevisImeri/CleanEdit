@@ -33,7 +33,8 @@ namespace api.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     FileName = table.Column<string>(type: "TEXT", nullable: false),
                     FilePath = table.Column<string>(type: "TEXT", nullable: false),
-                    UserId = table.Column<int>(type: "INTEGER", nullable: false)
+                    UserId = table.Column<int>(type: "INTEGER", nullable: false),
+                    DurationFPS = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -47,9 +48,8 @@ namespace api.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
-                    ProjectFilePath = table.Column<string>(type: "TEXT", nullable: false),
                     UserId = table.Column<int>(type: "INTEGER", nullable: false),
-                    VideoId = table.Column<int>(type: "INTEGER", nullable: false)
+                    VideoId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -64,6 +64,46 @@ namespace api.Migrations
                         name: "FK_Projects_Videos_VideoId",
                         column: x => x.VideoId,
                         principalTable: "Videos",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Track",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ProjectId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Track", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Track_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Segment",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Start = table.Column<double>(type: "REAL", nullable: false),
+                    End = table.Column<double>(type: "REAL", nullable: false),
+                    Removed = table.Column<bool>(type: "INTEGER", nullable: false),
+                    TrackId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Segment", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Segment_Track_TrackId",
+                        column: x => x.TrackId,
+                        principalTable: "Track",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -77,11 +117,27 @@ namespace api.Migrations
                 name: "IX_Projects_VideoId",
                 table: "Projects",
                 column: "VideoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Segment_TrackId",
+                table: "Segment",
+                column: "TrackId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Track_ProjectId",
+                table: "Track",
+                column: "ProjectId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Segment");
+
+            migrationBuilder.DropTable(
+                name: "Track");
+
             migrationBuilder.DropTable(
                 name: "Projects");
 
