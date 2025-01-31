@@ -15,13 +15,8 @@ export const projects = ref<Project[]>([]);
 export const selectedProject = ref<Project | null>(null);
 
 
-export const selectedVideo = ref<File | null>(null);
-export const videoUrl = ref<string | null>(null);
-// export const selectedProject = ref<File | null>(null);
-export const projectVideoName = ref<string | undefined>();
-export const cutPoints = ref<number[]>([]);
 export const video = ref<HTMLVideoElement | null>(null);
-export const tracks = ref<Track[]>([]);
+export const cutPoints = ref<number[]>([]);
 export const totalDuration = ref<number>(18000);
 export const fps = ref<number>(60);
 export const zoomLevel = ref<number>(1.0);

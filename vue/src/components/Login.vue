@@ -11,7 +11,10 @@
         <input v-model="formPassword" type="password" class="button" required />
       </div>
       <button type="submit" class="button">Login</button>
-      <p class="mt-4  text-zinc-400">Don't have an account? <button type="button" class="button" @click="$emit('show-signup')">Signup</button></p>
+      <p class="mt-4  text-zinc-400">
+        Don't have an account? 
+        <button type="button" class="button" @click="router.push('/Signup')">Signup</button>
+      </p>
     </form>
   </div>
 </template>

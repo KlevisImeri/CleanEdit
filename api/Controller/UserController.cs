@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -11,16 +12,25 @@ using System.Threading.Tasks;
 public class UserController : ControllerBase {
   private readonly ApplicationDbContext db;
   private readonly IConfiguration config;
+  private readonly ILogger log;
 
-  public UserController(ApplicationDbContext context, IConfiguration configuration) {
+  public UserController(
+      ApplicationDbContext context,
+      IConfiguration configuration,
+      ILogger<UserController> logger
+  ) {
     db = context;
     config = configuration;
+    log = logger;
   }
 
   [HttpPost("signup")]
   public async Task<IActionResult> Register([FromForm] string username, [FromForm] string password, [FromForm] string email) {
     if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email)) {
       return BadRequest("All fields are required");
+    }
+    if(db.Users.Any(u => u.Username == username)) {
+      return Conflict("User already exists!");
     }
 
     var hashedPassword = HashPassword(password);

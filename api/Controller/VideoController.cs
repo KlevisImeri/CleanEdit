@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -11,57 +12,99 @@ using System.Threading.Tasks;
 public class VideoController : ControllerBase {
 
   private readonly ApplicationDbContext db;
+  private readonly ILogger<VideoController> log;
 
-  public VideoController(ApplicationDbContext context) {
+  public VideoController(
+      ApplicationDbContext context,
+      ILogger<VideoController> logger
+  ) {
     db = context;
+    log = logger;
   }
 
   [HttpPost("uploadvideo")]
-  public async Task<IActionResult> UploadVideo([FromForm] IFormFile video) {
+public async Task<IActionResult> UploadVideo(
+    [FromForm] IFormFile video,
+    [FromForm] int durationFPS,
+    [FromForm] int projectId
+){
+
     if (video == null || video.Length == 0) {
-      return BadRequest("Video file is required");
+        return BadRequest("Video file is required");
     }
 
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
     if (userId == null) {
-      return Unauthorized("User ID not found in token");
+        return Unauthorized("User ID not found in token");
+    }
+    
+    log.LogInformation($"ProjectID: {projectId}");
+    var project = await db.Projects
+        .FirstOrDefaultAsync(p => p.Id == projectId);
+    if (project == null) {
+        return NotFound("Project not found!");
     }
 
-    var videoPath = Path.Combine(Directory.GetCurrentDirectory(), "videos", video.FileName);
-    var videoDir = Path.GetDirectoryName(videoPath);
-    if (videoDir == null) {
-      return StatusCode(500, "Failed to create video directory");
-    }
-    Directory.CreateDirectory(videoDir);
-
-
-    using (var stream = new FileStream(videoPath, FileMode.Create)) {
-      await video.CopyToAsync(stream);
+    log.LogInformation($"UserId: {int.Parse(userId)}");
+    if(project.UserId != int.Parse(userId)) {
+        return Unauthorized("You do not have access to this project!");
     }
 
-    var videoEntity = new Video {
-      FileName = video.FileName,
-      FilePath = videoPath,
-      UserId = int.Parse(userId)
+    var videoDirectory = Path.Combine(Directory.GetCurrentDirectory(), "videos");
+    if (!Directory.Exists(videoDirectory))
+    {
+        Directory.CreateDirectory(videoDirectory);
+    }
+
+    var videoPath = Path.Combine(videoDirectory, video.FileName);
+    using (var stream = new FileStream(videoPath, FileMode.Create))
+    {
+        await video.CopyToAsync(stream);
+    }
+
+    var video = new Video
+    {
+        FileName = video.FileName,
+        FilePath = videoPath,
+        UserId = int.Parse(userId),
+        DurationFPS = durationFPS,
     };
 
     db.Videos.Add(videoEntity);
+    
+    var segment = new Segment() {
+      Start = 0,
+      End = durationFPS,
+      Removed = false,
+    };
+    db.Segments.Add(segment);
+    
+    var track = new Track();
+    db.Tracks.Add(track);
     await db.SaveChangesAsync();
 
-    return Ok(new { path = videoPath });
+    project.Video = video;
+    track.Segments.Add(segment);
+    project.Tracks.Add(track);
+    await db.SaveChangesAsync();
+
+    return Ok(new { project });
   }
 
-  [HttpGet("videos/{fileName}")]
-  public IActionResult GetVideo(string fileName) {
+  [HttpGet("{ID}")]
+  public IActionResult GetVideo(int ID) {
+    log.LogInformation($"Requested Video with id={ID}");
+
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
     if (userId == null) {
       return Unauthorized("User ID not found in token");
     }
-
-    var video = db.Videos.SingleOrDefault(v => v.FileName == fileName && v.UserId == int.Parse(userId));
+    
+    var video = db.Videos.SingleOrDefault(v => v.Id == ID && v.UserId == int.Parse(userId));
     if (video == null) {
       return NotFound("Video not found or you do not have access to this video");
     }
+    log.LogInformation($"Rquested Video is at {video.FilePath}");
 
     var videoPath = video.FilePath;
     if (!System.IO.File.Exists(videoPath)) {

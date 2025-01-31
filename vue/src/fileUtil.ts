@@ -1,9 +1,5 @@
 import {
 	selectedProject,
-	selectedVideo,
-	videoUrl,
-	tracks,
-	projectVideoName,
 	fps,
 	totalDuration,
 	MINCUTWIDTH,

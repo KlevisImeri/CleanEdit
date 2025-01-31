@@ -34,3 +34,5 @@ coverage
 
 bin
 obj
+
+api/videos/

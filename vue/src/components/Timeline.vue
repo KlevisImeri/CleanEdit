@@ -1,10 +1,10 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
-	<div v-if="selectedVideo" class="w-full bg-gray-800 text-white font-sans">
-		<div class="flex items-center p-2 ">
-			<span class="ml-auto">{{ formatTime(Math.round(currentFrame / fps)) }} / {{ formatTime(totalDuration / fps)
-				}}</span>
-		</div>
+  <div v-if="selectedVideo" class="w-full bg-gray-800 text-white font-sans">
+    <div class="flex items-center p-2 ">
+      <span class="ml-auto">{{ formatTime(Math.round(currentFrame / fps)) }} / {{ formatTime(totalDuration / fps)
+        }}</span>
+    </div>
     
     <div class="p-2 bg-gray-700 rounded-lg">
       <div 
@@ -58,49 +58,47 @@
       </div>    
     </div>
 
-	</div>
+  </div>
 </template>
 
 <script setup lang="ts">
 
 import {
-	ref,
-	computed,
-	watch,
+  ref,
+  computed,
+  watch,
   onMounted,
 } from 'vue';
 
 import {
-	tracks,
-	totalDuration,
-	zoomLevel,
-	fps,
-	fpsToPx,
-	secToPos,
-	currentFrame,
-	UNITTICK,
-	ZOOMMIX,
-	ZOOMMAX,
-	UNITMARKER,
-	ZOOMSPEED,
-	video,
-	curSeg,
-	till,
-  selectedVideo,
+  selectedProject,
+  zoomLevel,
+  fps,
+  fpsToPx,
+  secToPos,
+  currentFrame,
+  UNITTICK,
+  ZOOMMIX,
+  ZOOMMAX,
+  UNITMARKER,
+  ZOOMSPEED,
+  video,
+  curSeg,
+  till,
   sel1,
   sel2,
 } from '@/variables';
 
 import type {
-	Segment,
-	Track,
+  Segment,
+  Track,
 } from '@/types';
 
 
 const scrollPosition = ref<number>(0.0);
 const timelineRef = ref<HTMLElement | null>(null);
 const timelineWidth = computed(() => totalDuration.value * fpsToPx.value);
-
+const tracks = selectedProject.tracks;
 
 function isSegmentSelected(segIndex : number): boolean {
   if (segIndex === sel1.value) {
@@ -120,51 +118,51 @@ function isSegmentSelected(segIndex : number): boolean {
 }
 
 const visibleRangeFPS = computed(() => {
-	const timeline = timelineRef.value;
-	if (!timeline) return { start: 0, end: 0 };
-	const left = scrollPosition.value;
-	const right = left + timeline.clientWidth;
-	const start = left / fpsToPx.value;
-	const end = right / fpsToPx.value;
-	return { start, end };
+  const timeline = timelineRef.value;
+  if (!timeline) return { start: 0, end: 0 };
+  const left = scrollPosition.value;
+  const right = left + timeline.clientWidth;
+  const start = left / fpsToPx.value;
+  const end = right / fpsToPx.value;
+  return { start, end };
 });
 
 const visibleRangeTIME = computed(() => {
-	const timeline = timelineRef.value;
-	if (!timeline) return { start: 0, end: 0 };
-	const left = scrollPosition.value;
-	const right = left + timeline.clientWidth;
-	const start = left / secToPos.value;
-	const end = right / secToPos.value;
-	return { start, end };
+  const timeline = timelineRef.value;
+  if (!timeline) return { start: 0, end: 0 };
+  const left = scrollPosition.value;
+  const right = left + timeline.clientWidth;
+  const start = left / secToPos.value;
+  const end = right / secToPos.value;
+  return { start, end };
 });
 
 
 const visibleSegments = computed(() => {
-	const { start, end } = visibleRangeFPS.value;
-	return tracks.value.flatMap(track =>
-		track.segments.filter(segment => segment.end >= start && segment.start <= end)
-	);
+  const { start, end } = visibleRangeFPS.value;
+  return selectedProject.value.tracks.flatMap(track =>
+    track.segments.filter(segment => segment.end >= start && segment.start <= end)
+  );
 });
 
 
 const timeMarkers = computed(() => {
-	const markers: number[] = [];
-	const { start, end } = visibleRangeTIME.value;
-	const step = UNITMARKER / zoomLevel.value;
-	for (let i = start; i <= end; i += step) {
-		markers.push(i);
-	}
-	return markers;
+  const markers: number[] = [];
+  const { start, end } = visibleRangeTIME.value;
+  const step = UNITMARKER / zoomLevel.value;
+  for (let i = start; i <= end; i += step) {
+    markers.push(i);
+  }
+  return markers;
 });
 const tickMarks = computed(() => {
-	const ticks: number[] = [];
-	const { start, end } = visibleRangeTIME.value;
-	const tickInterval = UNITTICK / zoomLevel.value; // Tick marks every second
-	for (let i = start; i <= end; i += tickInterval) {
-		ticks.push(i);
-	}
-	return ticks;
+  const ticks: number[] = [];
+  const { start, end } = visibleRangeTIME.value;
+  const tickInterval = UNITTICK / zoomLevel.value; // Tick marks every second
+  for (let i = start; i <= end; i += tickInterval) {
+    ticks.push(i);
+  }
+  return ticks;
 });
 
 const formatTime = (time: number): string => {
@@ -192,58 +190,58 @@ const zoom = (factor: number, mouseX: number) => {
 };
 
 const handleWheel = (event: WheelEvent) => {
-	if (event.ctrlKey) {
-		event.preventDefault();
-		const factor = event.deltaY > 0 ? 1 - ZOOMSPEED : 1 + ZOOMSPEED;
-		zoom(factor, event.clientX);
-	} else {
-		const timeline = timelineRef.value;
-		if (timeline) {
-			timeline.scrollLeft += event.deltaY;
-		}
-	}
+  if (event.ctrlKey) {
+    event.preventDefault();
+    const factor = event.deltaY > 0 ? 1 - ZOOMSPEED : 1 + ZOOMSPEED;
+    zoom(factor, event.clientX);
+  } else {
+    const timeline = timelineRef.value;
+    if (timeline) {
+      timeline.scrollLeft += event.deltaY;
+    }
+  }
 };
 const handleScroll = (event: Event) => {
-	const target = event.target as HTMLElement;
-	scrollPosition.value = target.scrollLeft;
+  const target = event.target as HTMLElement;
+  scrollPosition.value = target.scrollLeft;
 };
 
 const segmentStyle = (segment: Segment): { left: string; width: string; } => {
-	const left = segment.start * fpsToPx.value;
-	const width = (segment.end - segment.start) * fpsToPx.value;
-	return {
-		left: `${left}px`,
-		width: `${width}px`,
-	};
+  const left = segment.start * fpsToPx.value;
+  const width = (segment.end - segment.start) * fpsToPx.value;
+  return {
+    left: `${left}px`,
+    width: `${width}px`,
+  };
 };
 
 const binarySearch = (track: Track, time: number): number => {
-	let low = 0;
-	let high = track.segments.length - 1;
+  let low = 0;
+  let high = track.segments.length - 1;
 
-	while (low <= high) {
-		const mid = Math.floor((low + high) / 2);
-		const segment = track.segments[mid];
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const segment = track.segments[mid];
 
-		if (time >= segment.start && time <= segment.end) {
-			return mid; // Found the segment containing the time
-		} else if (time < segment.start) {
-			high = mid - 1; // Search left
-		} else {
-			low = mid + 1; // Search right
-		}
-	}
+    if (time >= segment.start && time <= segment.end) {
+      return mid; // Found the segment containing the time
+    } else if (time < segment.start) {
+      high = mid - 1; // Search left
+    } else {
+      low = mid + 1; // Search right
+    }
+  }
 
-	return track.segments.length - 1; // Time not found in any segment
+  return track.segments.length - 1; // Time not found in any segment
 };
 
 const handleClick = (event: MouseEvent) => {
-	const timeline = timelineRef.value;
-	if (!timeline) return;
+  const timeline = timelineRef.value;
+  if (!timeline) return;
 
-	const rect = timeline.getBoundingClientRect();
-	const clickPositionX = event.clientX - rect.left + timeline.scrollLeft;
-	const newTime = clickPositionX / secToPos.value; 
+  const rect = timeline.getBoundingClientRect();
+  const clickPositionX = event.clientX - rect.left + timeline.scrollLeft;
+  const newTime = clickPositionX / secToPos.value; 
   const newFrame = clickPositionX / fpsToPx.value;
   const selectedSegment = binarySearch(tracks.value[0], newFrame);
   // console.log(selectedSegment);
@@ -272,22 +270,22 @@ const handleClick = (event: MouseEvent) => {
 
 //TODO: optize this you can save the firt and last frame of the visible timeline
 watch(currentFrame, (newFrame) => {
-	// console.log(`CurrentFrame changed: ${currentFrame.value}`);
-	const timeline = timelineRef.value;
-	if (!timeline) return;
+  // console.log(`CurrentFrame changed: ${currentFrame.value}`);
+  const timeline = timelineRef.value;
+  if (!timeline) return;
 
-	// Convert timeline dimensions from pixels to frames
-	const timelineWidthInFrames = timeline.clientWidth / fpsToPx.value;
-	const timelineLeftInFrames = scrollPosition.value / fpsToPx.value;
-	const timelineRightInFrames = timelineLeftInFrames + timelineWidthInFrames;
+  // Convert timeline dimensions from pixels to frames
+  const timelineWidthInFrames = timeline.clientWidth / fpsToPx.value;
+  const timelineLeftInFrames = scrollPosition.value / fpsToPx.value;
+  const timelineRightInFrames = timelineLeftInFrames + timelineWidthInFrames;
 
-	// Determine if the new frame is outside the visible range
-	if (newFrame < timelineLeftInFrames || newFrame > timelineRightInFrames) {
-		// Calculate new scroll position to bring the current frame into view
-		const newTimelineLeftInFrames = newFrame - (timelineWidthInFrames * 0.1);
-		timeline.scrollLeft = newTimelineLeftInFrames * fpsToPx.value;
-		scrollPosition.value = timeline.scrollLeft;
-	}
+  // Determine if the new frame is outside the visible range
+  if (newFrame < timelineLeftInFrames || newFrame > timelineRightInFrames) {
+    // Calculate new scroll position to bring the current frame into view
+    const newTimelineLeftInFrames = newFrame - (timelineWidthInFrames * 0.1);
+    timeline.scrollLeft = newTimelineLeftInFrames * fpsToPx.value;
+    scrollPosition.value = timeline.scrollLeft;
+  }
 });
 
 const onKeyDown = (event: KeyboardEvent) => {

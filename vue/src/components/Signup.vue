@@ -15,7 +15,7 @@
         <input v-model="email" type="email" class="button" required />
       </div>
       <button type="submit" class="button">Signup</button>
-      <button type="button" class="button mt-4" @click="$emit('back-to-login')">Back to Login</button>
+      <button type="button" class="button mt-4" @click="router.push('/Login')">Back to Login</button>
     </form>
   </div>
 </template>

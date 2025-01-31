@@ -25,13 +25,21 @@ public class ProjectController : ControllerBase {
     var projects = await db.Projects
       .Where(p => p.UserId == int.Parse(userId))
       .Include(p => p.Video)
+      .Select(p => new {
+          p.Id,
+          p.Name,
+          p.UserId,
+          p.VideoId,
+          p.Tracks,
+          Video = p.Video != null ? new { p.Video.Id, p.Video.FileName } : null
+      })
       .ToListAsync();
 
     return Ok(projects);
   }
 
-  [HttpPost]  
-  public async Task<IActionResult> CreateProject([FromForm] string name, [FromForm] int videoId, [FromForm] string projectFilePath) {
+  [HttpPost("create")]  
+  public async Task<IActionResult> CreateProject([FromForm] string name) {
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
     if (userId == null) {
       return Unauthorized("User ID not found in token");
@@ -39,9 +47,8 @@ public class ProjectController : ControllerBase {
 
     var project = new Project {
       Name = name,
-      VideoId = videoId,
-      ProjectFilePath = projectFilePath,
-      UserId = int.Parse(userId)
+      UserId = int.Parse(userId),
+      VideoId = null
     };
 
     db.Projects.Add(project);

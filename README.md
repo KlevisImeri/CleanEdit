@@ -7,6 +7,7 @@
 
 
 ## TODO
+- SelectedProject has null tracks.
 - Rest upload video
 - Fix editor
 

@@ -18,6 +18,7 @@ import { ref } from 'vue';
 import { 
   API_PORT,
   selectedProject,
+  fps,
 } from '../variables';
 
 const fileInput = ref(null);
@@ -25,7 +26,7 @@ const fileInput = ref(null);
 const handleFileUpload = async (event) => {
   const file = event.target.files[0];
   if (file) {
-    await uploadFile(file);
+    await uploadVideo(file);
   }
 };
 
@@ -33,37 +34,46 @@ const handleDrop = async (event) => {
   event.preventDefault();
   const file = event.dataTransfer.files?.[0];
   if (file) {
-    await uploadFile(file);
+    await uploadVideo(file);
   }
 };
 
-const uploadFile = async (file) => {
+const uploadVideo = async (file) => {
   const formData = new FormData();
-  formData.append('video', file);
-  console.log(formData);
+  const videoElement = document.createElement("video");
+  
+  videoElement.preload = "metadata";
+  videoElement.src = URL.createObjectURL(file);
 
-  try {
-    const response = await fetch(`http://localhost:${API_PORT}/api/video/uploadvideo`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: formData
-    });
+  videoElement.onloadedmetadata = async () => {
+    URL.revokeObjectURL(videoElement.src);
+    const duration = videoElement.duration;
+    
+    //console.log(selectedProject.value.id);
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('File uploaded:', data.path);
-      // Update the project with the new video path
-      selectedProject.value.video = new URL(data.path);
-    } else {
-      console.error('Failed to upload video');
+    formData.append("video", file);
+    formData.append("durationFPS", Math.round(duration * fps.value));
+    formData.append("projectID", selectedProject.value.id);
+
+    try {
+      const response = await fetch(`http://localhost:${API_PORT}/api/video/uploadvideo`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("File uploaded:", data.project);
+        selectedProject.value = data.project;
+      } else {
+        console.error("Failed to upload video");
+      }
+    } catch (error) {
+      console.error("Error:", error);
     }
-  } catch (error) {
-    console.error('Error:', error);
-  }
+  };
 };
 </script>
-
-<style scoped>
-</style>

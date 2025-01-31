@@ -1,21 +1,7 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="flex-1 flex flex-col justify-center items-center">
-
-    <div class="flex">
-      <button @click="openVideo" class="button">
-        Open Video
-      </button>
-      <button @click="openProject" class="button">
-        Open Project
-      </button>
-      <div class="flex justify-center">
-        <button @click="exportProject" class="button">
-          Export Cut Points
-        </button>
-      </div>
-    </div>
-
-    <Video v-if="videoUrl" />
+    <Video/>
     <Timeline/>
   </div>
 
@@ -49,19 +35,14 @@ import Timeline from '@/components/Timeline.vue'
 import Video from '@/components/Video.vue'
 
 import {
-  selectedVideo,
   selectedProject,
-  projectVideoName,
   fps,
-  videoUrl,
   showShortcuts,
   showInformation,
   video,
 } from '@/variables';
 
 import {
-  openVideo,
-  openProject,
   exportProject,
   saveProject,
 } from '@/fileUtil'
@@ -72,8 +53,8 @@ import {
 } from 'vue'
 
 
-// Listen for the 'W' key to add cut points
 const onKeyDown = (event: KeyboardEvent) => {
+// Listen for the 'W' key to add cut points
 if (event.key === ' ') {
   event.preventDefault();
   if (video.value) {

@@ -9,9 +9,16 @@ export type Track = {
   segments: Segment[],
 };
 
+export type Video = {
+  id: number,
+  fileName: string,
+  durationFPS: number,
+}
+
 export type Project = {
+  id: number,
   name: string,
-  video: URL,
-  track: Track,
+  video: Video,
+  tracks: Track[],
 }
 
