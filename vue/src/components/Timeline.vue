@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
-  <div v-if="selectedVideo" class="w-full bg-gray-800 text-white font-sans">
+  <div v-if="selectedProject.video" class="w-full bg-gray-800 text-white font-sans">
     <div class="flex items-center p-2 ">
       <span class="ml-auto">{{ formatTime(Math.round(currentFrame / fps)) }} / {{ formatTime(totalDuration / fps)
         }}</span>
@@ -97,7 +97,7 @@ import type {
 
 const scrollPosition = ref<number>(0.0);
 const timelineRef = ref<HTMLElement | null>(null);
-const timelineWidth = computed(() => totalDuration.value * fpsToPx.value);
+const timelineWidth = computed(() => selectedProject.value.video.durationFPS * fpsToPx.value);
 const tracks = selectedProject.tracks;
 
 function isSegmentSelected(segIndex : number): boolean {

@@ -2,7 +2,7 @@
 <template>
   <div class="flex-1 flex flex-col justify-center items-center">
     <Video/>
-   <!-- <Timeline/> -->
+    <Timeline v-if="selectedProject.video"/>
   </div>
 
   <div v-if="showShortcuts" class="ontopdiv">
