@@ -1,2 +1,0 @@
-clear
-dotnet run
